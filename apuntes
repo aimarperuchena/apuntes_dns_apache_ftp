@@ -1,0 +1,122 @@
+------------------------FTP--------------------------------
+apt-get install proftpd
+
+chmod 777 upload
+chmod 755 download
+chmod 755 FTPDocuments
+
+useradd test –p laboratorio01, –d /var/www/test –s /bin/false
+passwd test
+
+nano /etc/shells
+añadir /bin/false
+
+nano /etc/proftpd/proftpd.conf
+<Limit LOGIN>
+AllowUser test
+DenyALL
+</Limit>
+
+Descomentar:
+RequireValidShell off
+DefaultRoot   ~
+
+service proftpd stop
+service proftpd start
+
+
+----------DNS----------------------------------------
+apt install bind9
+
+nano /etc/resolv.conf 127.0.0.1
+
+nano named.conf.options
+forwarders{
+	8.8.8.8;
+};
+
+
+cp db.local db.test.com
+
+$TTL    604800
+@       IN      SOA     dns.test.com. root.dns.test.com. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      dns.test.com.
+dns     IN      A       192.168.1.39
+www     IN      A       192.168.1.31
+
+nano named.conf.local
+zone "test.com" {
+        type master;
+        file "/etc/bind/db.test.com";
+};
+
+-----------------------------------------------------------------------------------------
+APACHE NORMAL
+
+cp /etc/apache2/sites-available/000-default.conf test.conf
+
+nano test.conf
+ ServerName www.test.com
+ ServerAdmin webmaster@localhost
+ DocumentRoot /var/www/test
+
+a2ensite test
+-------------------------------------------------------------------------------------------
+APACHE HTTPS
+
+cp /etc/apache2/sites-available/default-ssl.conf test_https.conf
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+
+
+sudo a2enmod ssl
+sudo a2enmod headers
+
+nano test_https.conf
+ ServerName www.test.com
+ ServerAdmin webmaster@localhost
+ DocumentRoot /var/www/test
+ SSLCertificateFile    /etc/ssl/certs/aimarperuchena.crt
+ SSLCertificateKeyFile /etc/ssl/private/aimarperuchena.key
+
+nano /etc/hosts
+192.168.1.31 www.test.com
+
+a2ensite test
+---------------------------------------------------------------------------------
+APACHE POR OTRO PUERTO
+
+cp /etc/apache2/sites-available/000-default.conf test.conf
+
+nano test.conf
+ ServerName www.test.com
+ ServerAdmin webmaster@localhost
+ DocumentRoot /var/www/test
+<VirtualHost *:EL PUERTO A USAR>
+
+nano /etc/apache2/ports.conf
+Listen PUERTO_A_USAR
+
+nano /etc/hosts
+192.168.1.31 www.test.com
+
+a2ensite test
+
+----------------------------------------------------------------------------------------------
+APACHE AUTENTIFICACI
+
+sudo htpasswd /etc/apache2/.htpasswd nombre_usuario
+
+nano test.conf
+<Directory "/var/www/html">
+        AuthType Basic
+        AuthName "Restricted Content"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require valid-user
+   </Directory>
